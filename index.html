@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,7 +11,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet"href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <style>
 :root{--pink:#ee6c9f;--pink-d:#c43d76;--ink:#141414;--bg:light-dark(#fff,#130f12);--surface:light-dark(#fff3f8,#1d161a);--text:light-dark(#141414,#f7f0f4);--muted:light-dark(#595057,#bcaeb5);--line:light-dark(#f1c1d5,#51303f);--accent-text:light-dark(#c43d76,#ee6c9f);--serif:"Playfair Display",Georgia,serif;--sans:"Montserrat",system-ui,sans-serif;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);color-scheme:light dark}
 :root:has(> head > meta[name="color-scheme"][content="light"]){color-scheme:light}
@@ -251,7 +252,7 @@ footer .script{font:italic 600 1.3rem var(--serif);color:var(--pink)}
    <li><small>Next outreach</small>Matero, 19 December 2026</li>
   </ul>
  </div>
- <form id="signup" novalidate aria-labelledby="formTitle">
+ <form id="signup" action="https://formspree.io/f/mvkaarwj" method="POST" novalidate aria-labelledby="formTitle">
   <h3 id="formTitle">Sign up or send us a message</h3>
   <div class="row">
    <div class="field"><label for="name">Full name <span aria-hidden="true">*</span></label>
@@ -272,7 +273,7 @@ footer .script{font:italic 600 1.3rem var(--serif);color:var(--pink)}
   </fieldset>
   <div class="field"><label for="msg">Message <span aria-hidden="true">*</span></label>
    <textarea id="msg" name="message" required minlength="10" aria-describedby="e-msg"></textarea><span class="err" id="e-msg" aria-live="polite"></span></div>
-  <button class="btn" type="submit">Send email</button>
+  <button class="btn" type="submit" id="submitBtn">Send message</button>
   <div class="status" id="status" role="status" hidden></div>
  </form>
 </div></section>
@@ -284,7 +285,7 @@ footer .script{font:italic 600 1.3rem var(--serif);color:var(--pink)}
 </div></footer>
 
 <script>
-const TO = "info@unitedheartsfoundation.org"; // replace with the foundation's real email
+const TO = "info@unitedheartsfoundation.org";
 document.getElementById("yr").textContent = new Date().getFullYear();
 document.getElementById("mailLink").href = "mailto:" + TO;
 const meta = document.querySelector('meta[name="color-scheme"]');
@@ -295,10 +296,9 @@ document.getElementById("themeToggle").addEventListener("click", () => {
   try { localStorage.setItem("color-scheme", next); } catch (e) {}
 });
 addEventListener("storage", e => { if (e.key === "color-scheme") meta.content = e.newValue || "light"; });
-// ---- PICTURES: edit these two lines ----
-const LOGO_FILE = "LOGOS.png"; // your logo file (used if it exists)
-const GALLERY = []; // e.g. ["images/outreach1.jpg", "images/outreach2.jpg", "images/outreach3.jpg"]
-// ----------------------------------------
+
+const LOGO_FILE = "LOGOS.png";
+const GALLERY = []; 
 const probe = new Image();
 probe.onload = () => document.querySelectorAll(".logo-img").forEach(i => i.src = LOGO_FILE);
 probe.src = LOGO_FILE;
@@ -313,9 +313,11 @@ if (GALLERY.length) {
   document.getElementById("gallery").hidden = false;
 }
 document.querySelectorAll("#menu a").forEach(a => a.addEventListener("click", () => { try { document.getElementById("menu").hidePopover(); } catch (e) {} }));
-const form = document.getElementById("signup"), status = document.getElementById("status");
+
+const form = document.getElementById("signup"), status = document.getElementById("status"), submitBtn = document.getElementById("submitBtn");
 const msgs = { name: "Please enter your name.", email: "Enter a valid email address, like name@example.com.", msg: "Please write a short message (at least 10 characters)." };
 const errEl = { name: "e-name", email: "e-email", msg: "e-msg" };
+
 function check(el) {
   const out = document.getElementById(errEl[el.id]);
   const bad = !el.validity.valid;
@@ -323,24 +325,48 @@ function check(el) {
   out.textContent = bad ? msgs[el.id] : "";
   return !bad;
 }
+
 ["name", "email", "msg"].forEach(id => {
   const el = document.getElementById(id);
   el.addEventListener("blur", () => check(el));
   el.addEventListener("input", () => { if (el.getAttribute("aria-invalid") === "true") check(el); });
 });
-form.addEventListener("submit", e => {
+
+form.addEventListener("submit", async e => {
   e.preventDefault();
   const fields = ["name", "email", "msg"].map(id => document.getElementById(id));
   const bad = fields.filter(f => !check(f));
   if (bad.length) { bad[0].focus(); return; }
-  const d = new FormData(form);
-  const subject = d.get("interest") + " – " + d.get("name");
-  const body = "Name: " + d.get("name") + "\nEmail: " + d.get("email") + "\nPhone: " + (d.get("phone") || "n/a") +
-    "\nI would like to: " + d.get("interest") + "\n\n" + d.get("message");
-  const href = "mailto:" + TO + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = "Sending...";
   status.hidden = false;
-  status.innerHTML = "Thank you! Your email app should open with your message ready to send. Just press send there. If nothing opens, email us at <a href=\"mailto:" + TO + "\">" + TO + "</a> or WhatsApp 097 6292677.";
-  window.location.href = href;
+  status.textContent = "Sending your message...";
+
+  try {
+    const response = await fetch(form.action, {
+      method: form.method,
+      body: new FormData(form),
+      headers: { 'Accept': 'json' }
+    });
+
+    if (response.ok) {
+      status.innerHTML = "Thank you! Your message has been sent successfully. We will get back to you soon.";
+      form.reset();
+    } else {
+      const data = await response.json();
+      if (data.hasOwnProperty('errors')) {
+        status.textContent = data.errors.map(error => error.message).join(", ");
+      } else {
+        status.textContent = "Oops! There was a problem submitting your form. Please try again or WhatsApp us at 097 6292677.";
+      }
+    }
+  } catch (error) {
+    status.textContent = "Oops! Network error. Please check your connection or WhatsApp us at 097 6292677.";
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Send message";
+  }
 });
 </script>
 </body>
